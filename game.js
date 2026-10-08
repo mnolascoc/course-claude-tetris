@@ -42,6 +42,32 @@ const restartBtn = document.getElementById('restart-btn');
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId;
 
+const themeBtn = document.getElementById('theme-btn');
+const THEME_KEY = 'tetris-theme';
+let gridColor;
+
+function setTheme(name) {
+  document.documentElement.dataset.theme = name;
+  try { localStorage.setItem(THEME_KEY, name); } catch (e) { /* storage no disponible */ }
+  gridColor = getComputedStyle(document.documentElement).getPropertyValue('--grid').trim();
+  // En pausa/game over el loop está detenido: repintar una vez
+  if (current && next) {
+    draw();
+    drawNext();
+  }
+}
+
+function toggleTheme() {
+  setTheme(document.documentElement.dataset.theme === 'light' ? 'dark' : 'light');
+}
+
+function initialTheme() {
+  let saved = null;
+  try { saved = localStorage.getItem(THEME_KEY); } catch (e) { /* ignorar */ }
+  if (saved === 'light' || saved === 'dark') return saved;
+  return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+}
+
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
 }
@@ -169,7 +195,7 @@ function drawBlock(context, x, y, colorIndex, size, alpha) {
 }
 
 function drawGrid() {
-  ctx.strokeStyle = '#22222e';
+  ctx.strokeStyle = gridColor;
   ctx.lineWidth = 0.5;
   for (let c = 1; c < COLS; c++) {
     ctx.beginPath();
@@ -276,6 +302,7 @@ function init() {
 
 document.addEventListener('keydown', e => {
   if (e.code === 'KeyP') { togglePause(); return; }
+  if (e.code === 'KeyT') { toggleTheme(); return; }
   if (paused || gameOver) return;
   switch (e.code) {
     case 'ArrowLeft':
@@ -300,5 +327,10 @@ document.addEventListener('keydown', e => {
 });
 
 restartBtn.addEventListener('click', init);
+themeBtn.addEventListener('click', () => {
+  toggleTheme();
+  themeBtn.blur(); // no robar el foco a las flechas/Space
+});
 
+setTheme(initialTheme());
 init();
